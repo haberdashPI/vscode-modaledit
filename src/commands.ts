@@ -875,13 +875,13 @@ async function replayRecordedKeys(args: RegisterArgs){
 }
 
 function resetSelection(){
+    actions.log("HELLO!!!")
     let editor = vscode.window.activeTextEditor
     if(editor){
         for(let i=0;i < editor.selections.length; i++){
-            editor.selections[i] = new vscode.Selection(
-                editor.selections[i].start,
-                editor.selections[i].end
-            )
+            actions.log("reseting selection i: "+i)
+            let pos = editor.selections[i].end;
+            editor.selections[i] = new vscode.Selection(pos, pos)
         }
     }
 }
