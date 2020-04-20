@@ -196,6 +196,7 @@ const toggleRecordingKeysId = "modaledit.toggleRecordingKeys"
 const cancelRecordingKeysId = "modaledit.cancelRecordingKeys"
 const stopRecordingKeysId = "modaledit.stopRecordingKeys"
 const replayRecordedKeysId = "modaledit.replayRecordedKeys"
+const resetSelectionId = "modaledit.resetSelection"
 
 /**
  * ## Registering Commands
@@ -228,7 +229,8 @@ export function register(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(toggleRecordingKeysId, toggleRecordingKeys),
         vscode.commands.registerCommand(cancelRecordingKeysId, cancelRecordingKeys),
         vscode.commands.registerCommand(stopRecordingKeysId, stopRecordingKeys),
-        vscode.commands.registerCommand(replayRecordedKeysId, replayRecordedKeys)
+        vscode.commands.registerCommand(replayRecordedKeysId, replayRecordedKeys),
+        vscode.commands.registerCommand(resetSelectionId, resetSelection)
     )
     statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Left);
@@ -870,4 +872,16 @@ async function replayRecordedKeys(args: RegisterArgs){
         }
     }
     register.replaying = false;
+}
+
+function resetSelection(){
+    let editor = vscode.window.activeTextEditor
+    if(editor){
+        for(let i=0;i < editor.selections.length; i++){
+            editor.selections[i] = new vscode.Selection(
+                editor.selections[i].start,
+                editor.selections[i].end
+            )
+        }
+    }
 }
