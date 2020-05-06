@@ -315,7 +315,7 @@ export function onTextChanged() {
  * is needed to decide whether the `lastKeySequence` variable is updated.
  */
 async function runActionForKey(key: string): Promise<boolean> {
-    return await actions.handleKey(key, isSelecting(), searching)
+    return await actions.handleKey(key, isSelecting(), searching, selecting)
 }
 /**
  * ## Mode Switching  Commands

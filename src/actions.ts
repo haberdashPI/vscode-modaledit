@@ -367,7 +367,7 @@ async function executeVSCommand(command: string, ...rest: any[]): Promise<void> 
  * `evalString` function evaluates JavaScript expressions. Before doing so, it
  * defines some variables that can be used in the evaluated text.
  */
-function evalString(str: string, __selecting: boolean): any {
+function evalString(str: string, __selecting: boolean, __selectflag: boolean): any {
     let __file = undefined
     let __line = undefined
     let __col = undefined
@@ -398,12 +398,12 @@ function evalString(str: string, __selecting: boolean): any {
  * condition is evaluated and if a key is found that matches the result, it is
  * executed.
  */
-async function executeConditional(cond: Conditional, selecting: boolean):
+async function executeConditional(cond: Conditional, selecting: boolean, selectflag: boolean):
     Promise<void> {
-    let res = evalString(cond.condition, selecting)
+    let res = evalString(cond.condition, selecting, selectflag)
     let branch = isString(res) ? res : JSON.stringify(res)
     if (branch && isAction(cond[branch]))
-        await execute(cond[branch], selecting)
+        await execute(cond[branch], selecting, selectflag)
 }
 /**
  * Parameterized commands can get their arguments in two forms: as a string
@@ -415,14 +415,14 @@ async function executeConditional(cond: Conditional, selecting: boolean):
  * times or as long as the expression in the `repeat` property returns a truthy
  * value.
  */
-async function executeParameterized(action: Parameterized, selecting: boolean) {
+async function executeParameterized(action: Parameterized, selecting: boolean, selectflag: boolean) {
     let repeat: string | number = 1
     async function exec(args?: any) {
         let cont = true
         if (isString(repeat))
             do {
                 await executeVSCommand(action.command, args)
-                cont = evalString(repeat, selecting)
+                cont = evalString(repeat, selecting, selectflag)
             }
             while (cont)
         else
@@ -431,7 +431,7 @@ async function executeParameterized(action: Parameterized, selecting: boolean) {
     }
     if (action.repeat) {
         if (isString(action.repeat)) {
-            let val = evalString(action.repeat, selecting)
+            let val = evalString(action.repeat, selecting, selectflag)
             if (typeof val === 'number')
                 repeat = Math.max(1, val)
             else
@@ -442,7 +442,7 @@ async function executeParameterized(action: Parameterized, selecting: boolean) {
     }
     if (action.args) {
         if (typeof action.args === 'string')
-            await exec(evalString(action.args, selecting))
+            await exec(evalString(action.args, selecting, selectflag))
         else
             await exec(action.args)
     }
@@ -458,17 +458,17 @@ async function executeParameterized(action: Parameterized, selecting: boolean) {
  * referenences in `validateAndResolveKeymaps`, an action has to be a keymap
  * object at this point. We set the new keymap as the active one.
  */
-async function execute(action: Action, selecting: boolean): Promise<void> {
+async function execute(action: Action, selecting: boolean, selectflag: boolean): Promise<void> {
     keymap = rootKeymap
     if (isString(action))
         await executeVSCommand(action)
     else if (isCommandSequence(action))
         for (const command of action)
-            await execute(command, selecting)
+            await execute(command, selecting, selectflag)
     else if (isConditional(action))
-        await executeConditional(action, selecting)
+        await executeConditional(action, selecting, selectflag)
     else if (isParameterized(action))
-        await executeParameterized(action, selecting)
+        await executeParameterized(action, selecting, selectflag)
     else
         keymap = <Keymap>action
 }
@@ -488,12 +488,12 @@ async function execute(action: Action, selecting: boolean): Promise<void> {
  * instead of just changing the active keymap.
  */
 export async function handleKey(key: string, selecting: boolean,
-    capture: boolean): Promise<boolean> {
+    capture: boolean, selectflag: boolean): Promise<boolean> {
     keySequence.push(key)
     if (capture && lastCommand)
         executeVSCommand(lastCommand, key)
     else if (keymap && keymap[key]) {
-        await execute(keymap[key], selecting)
+        await execute(keymap[key], selecting, selectflag)
         if (keymap == rootKeymap)
             keySequence = []
     }
