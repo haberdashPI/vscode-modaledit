@@ -158,6 +158,17 @@ let currentKeySequence: string[] = []
 let lastKeySequence: string[] = []
 let lastChange: string[] = []
 /**
+ * "Repeat last selection" command needs to know when a new selection has
+ * been created or an old one modified, and it needs to store
+ * the seqeunce of commands leading to those modifications
+ */
+let lastSelections: vscode.Selection[] = [];
+let selectionModified = false
+let selectionCreated = false
+let lastSelectionSequence: Array<string>[] = [];
+let selectionSequence: Array<string>[] = [];
+
+/**
  * ## Command Names
  *
  * Since command names are easy to misspell, we define them as constants.
@@ -182,6 +193,8 @@ const insertQuickSnippetId = "modaledit.insertQuickSnippet"
 const typeNormalKeysId = "modaledit.typeNormalKeys"
 const selectBetweenId = "modaledit.selectBetween"
 const repeatLastChangeId = "modaledit.repeatLastChange"
+const repeatLastSelectionId = "modaledit.repeatLastSelection"
+
 /**
  * ## Registering Commands
  *
@@ -210,7 +223,8 @@ export function register(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(insertQuickSnippetId, insertQuickSnippet),
         vscode.commands.registerCommand(typeNormalKeysId, typeNormalKeys),
         vscode.commands.registerCommand(selectBetweenId, selectBetween),
-        vscode.commands.registerCommand(repeatLastChangeId, repeatLastChange)
+        vscode.commands.registerCommand(repeatLastChangeId, repeatLastChange),
+        vscode.commands.registerCommand(repeatLastSelectionId, repeatLastSelection)
     )
     statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Left);
@@ -226,13 +240,22 @@ export function register(context: vscode.ExtensionContext) {
  */
 async function onType(event: { text: string }) {
     if (textChanged) {
+        lastSelectionSequence = selectionSequence;
         lastChange = lastKeySequence
-        textChanged = false
+        textChanged = false;
     }
     currentKeySequence.push(event.text)
     if (await runActionForKey(event.text, true)) {
         lastKeySequence = currentKeySequence
         currentKeySequence = []
+        if(selectionCreated){
+            selectionSequence = [];
+            selectionCreated = false;
+        }
+        if(selectionModified){
+            selectionSequence.push(lastKeySequence);
+            selectionModified = false;
+        }
     }
     updateStatusBar(vscode.window.activeTextEditor, actions.getHelp())
 }
@@ -244,6 +267,39 @@ async function onType(event: { text: string }) {
 export function onTextChanged() {
     textChanged = true
 }
+
+/**
+ * Whenver a selection changes we check we flag it as a modification or
+ * creation. A modified selection is one that is a non-empty subset of the old
+ * selection or a superset of a non-empty previous selection. Any
+ * other selection is 'new'.
+ */
+export function onSelectionChanged(sels: ReadonlyArray<vscode.Selection>){
+    let i = 0;
+    let minlen = Math.min(sels.length, lastSelections.length)
+    let isNonemptySubset = true;
+    let isNonemptySuperset = true;
+
+    if(sels.length == 0) isNonemptySuperset = false
+    if(lastSelections.length == 0) isNonemptySubset = false;
+    if(isNonemptySubset && sels.length < lastSelections.length)
+        isNonemptySubset = false;
+    if(isNonemptySuperset && lastSelections.length < sels.length)
+        isNonemptySuperset = false;
+
+    for(;i<minlen;i++){
+        if(!isNonemptySubset && !isNonemptySuperset) break;
+        if(!sels[i].contains(lastSelections[i])) isNonemptySubset = false;
+        if(!lastSelections[i].contains(sels[i])) isNonemptySuperset = false;
+    }
+
+    if(isNonemptySubset || isNonemptySuperset){
+        selectionModified = true;
+    }else if(!(isNonemptySubset && isNonemptySuperset)){
+        selectionCreated = true;
+    }
+}
+
 /**
  * This helper function just calls the `handleKey` function in the `actions`
  * module. It checks if we have an active selection or search mode on, and
@@ -880,4 +936,19 @@ async function repeatLastChange(): Promise<void> {
     for (let i = 0; i < lastChange.length; i++)
         await runActionForKey(lastChange[i], false)
     currentKeySequence = lastChange
+}
+
+/**
+ * ## Repeat Last Selection
+ *
+ * The `repeatLastSelection` command runs the key sequences stored in
+ * `lastSelectionSequence`. Like `repeatLastChange` w have to restore
+ * the `lastSelectionSequence` variable after running this sequence.
+ */
+async function repeatLastSelection(): Promise<void> {
+    for (let i = 0; i < lastSelectionSequence.length; i++){
+        for(let j = 0; j < lastSelectionSequence[i].length; j++)
+            await runActionForKey(lastSelectionSequence[i][j], false);
+    }
+    selectionSequence = lastSelectionSequence;
 }
