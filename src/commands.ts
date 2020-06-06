@@ -160,13 +160,15 @@ let lastChange: string[] = []
 /**
  * "Repeat last selection" command needs to know when a new selection has
  * been created or an old one modified, and it needs to store
- * the seqeunce of commands leading to those modifications
+ * the seqeunce of commands leading to those modifications.
+ * We also keep track of whether the selection was just repeated
+ * (to avoid infinite calls to the repeat seletion command).
  */
-let lastSelections: vscode.Selection[] = [];
-let selectionModified = false
-let selectionCreated = false
-let lastSelectionSequence: Array<string>[] = [];
-let selectionSequence: Array<string>[] = [];
+let selectionChanged = false;
+let repeatedSelection = false;
+let lastSelectionSequence: string[] = [];
+let currentSelectionSequence: string[] = [];
+let lastSelectionCommand: string[] = [];
 
 /**
  * ## Command Names
@@ -239,23 +241,19 @@ export function register(context: vscode.ExtensionContext) {
  * variables needed by the `repeatLastChange` command and the status bar.
  */
 async function onType(event: { text: string }) {
-    if (textChanged) {
-        lastSelectionSequence = selectionSequence;
-        lastChange = lastKeySequence
-        textChanged = false;
-    }
+    // if(textChanged){
+    //     lastSelectionCommand = lastSelectionSequence;
+    //     lastChange = lastKeySequence;
+    //     textChanged = false;
+    // }
+    // if(selectionChanged){
+    //     lastSelectionSequence = lastKeySequence;
+    //     selectionChanged = false;
+    // }
     currentKeySequence.push(event.text)
     if (await runActionForKey(event.text, true)) {
-        lastKeySequence = currentKeySequence
+        lastKeySequence = currentKeySequence;
         currentKeySequence = []
-        if(selectionCreated){
-            selectionSequence = [];
-            selectionCreated = false;
-        }
-        if(selectionModified){
-            selectionSequence.push(lastKeySequence);
-            selectionModified = false;
-        }
     }
     updateStatusBar(vscode.window.activeTextEditor, actions.getHelp())
 }
@@ -265,7 +263,8 @@ async function onType(event: { text: string }) {
  * to indicate that the last command that changed editor text.
  */
 export function onTextChanged() {
-    textChanged = true
+    lastChange = lastKeySequence;
+    lastSelectionCommand = lastSelectionSequence;
 }
 
 /**
@@ -274,29 +273,9 @@ export function onTextChanged() {
  * selection or a superset of a non-empty previous selection. Any
  * other selection is 'new'.
  */
-export function onSelectionChanged(sels: ReadonlyArray<vscode.Selection>){
-    let i = 0;
-    let minlen = Math.min(sels.length, lastSelections.length)
-    let isNonemptySubset = true;
-    let isNonemptySuperset = true;
-
-    if(sels.length == 0) isNonemptySuperset = false
-    if(lastSelections.length == 0) isNonemptySubset = false;
-    if(isNonemptySubset && sels.length < lastSelections.length)
-        isNonemptySubset = false;
-    if(isNonemptySuperset && lastSelections.length < sels.length)
-        isNonemptySuperset = false;
-
-    for(;i<minlen;i++){
-        if(!isNonemptySubset && !isNonemptySuperset) break;
-        if(!sels[i].contains(lastSelections[i])) isNonemptySubset = false;
-        if(!lastSelections[i].contains(sels[i])) isNonemptySuperset = false;
-    }
-
-    if(isNonemptySubset || isNonemptySuperset){
-        selectionModified = true;
-    }else if(!(isNonemptySubset && isNonemptySuperset)){
-        selectionCreated = true;
+export function onSelectionChanged(){
+    if(lastChange !== lastKeySequence){
+        lastSelectionSequence = lastKeySequence;
     }
 }
 
@@ -946,9 +925,9 @@ async function repeatLastChange(): Promise<void> {
  * the `lastSelectionSequence` variable after running this sequence.
  */
 async function repeatLastSelection(): Promise<void> {
-    for (let i = 0; i < lastSelectionSequence.length; i++){
-        for(let j = 0; j < lastSelectionSequence[i].length; j++)
-            await runActionForKey(lastSelectionSequence[i][j], false);
+    for (let i = 0; i < lastSelectionCommand.length; i++){
+        await runActionForKey(lastSelectionCommand[i], false);
     }
-    selectionSequence = lastSelectionSequence;
+    repeatedSelection = true;
+    lastKeySequence = lastSelectionCommand;
 }

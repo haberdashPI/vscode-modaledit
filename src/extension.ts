@@ -36,7 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.onDidChangeVisibleTextEditors(editors =>
 			editors.forEach(commands.updateCursorAndStatusBar)),
 		vscode.window.onDidChangeTextEditorSelection(e => {
-			commands.onSelectionChanged(e.selections)
+			commands.onSelectionChanged()
 			commands.updateStatusBar(e.textEditor)
 		}),
 		vscode.workspace.onDidChangeTextDocument(commands.onTextChanged))
