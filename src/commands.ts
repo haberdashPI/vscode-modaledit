@@ -169,6 +169,7 @@ let repeatedSelection = false;
 let lastSelectionSequence: string[] = [];
 let currentSelectionSequence: string[] = [];
 let lastSelectionCommand: string[] = [];
+let oldSelections: vscode.Selection[] = [];
 
 /**
  * ## Command Names
@@ -273,9 +274,22 @@ export function onTextChanged() {
  * selection or a superset of a non-empty previous selection. Any
  * other selection is 'new'.
  */
-export function onSelectionChanged(){
+export function onSelectionChanged(sel: ReadonlyArray<vscode.Selection>){
+    // reseet sequence if the selection is "new"
+    // because it's empty
+    if(sel.every(x => x.isEmpty)){
+        lastSelectionSequence = [];
+    }
+    // because it doesn't contain old or isn't contained by old
+    else if(!sel.every((x,i) =>
+        oldSelections[i] === undefined ||
+        x.contains(oldSelections[i]) ||
+        oldSelections[i].contains(x))){
+        lastSelectionSequence = [];
+    }
+
     if(lastChange !== lastKeySequence){
-        lastSelectionSequence = lastKeySequence;
+        lastSelectionSequence.concat(lastKeySequence);
     }
 }
 
@@ -929,5 +943,4 @@ async function repeatLastSelection(): Promise<void> {
         await runActionForKey(lastSelectionCommand[i], false);
     }
     repeatedSelection = true;
-    lastKeySequence = lastSelectionCommand;
 }
