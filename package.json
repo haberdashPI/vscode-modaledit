@@ -5,7 +5,7 @@
 	"version": "1.10.0",
 	"publisher": "johtela",
 	"engines": {
-		"vscode": "^1.43.0"
+		"vscode": "^1.45.1"
 	},
 	"repository": {
 		"url": "https://github.com/johtela/vscode-modaledit"
@@ -260,10 +260,10 @@
 		"watch": "tsc -watch -p ./"
 	},
 	"devDependencies": {
-		"@types/node": "^13.13.9",
+		"@types/node": "^13.13.10",
 		"@types/vscode": "^1.45.1",
 		"ts-loader": "^6.2.2",
-		"typescript": "^3.9.3",
+		"typescript": "^3.9.5",
 		"webpack": "^4.43.0",
 		"webpack-cli": "^3.3.11"
 	},
