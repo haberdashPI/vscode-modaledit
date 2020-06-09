@@ -200,6 +200,7 @@ const selectBetweenId = "modaledit.selectBetween"
 const repeatLastChangeId = "modaledit.repeatLastChange"
 const repeatLastSelectionId = "modaledit.repeatLastSelection"
 const touchTextId = "modaledit.touchText"
+const untouchTextId = "modaledit.untouchText"
 
 /**
  * ## Registering Commands
@@ -231,7 +232,8 @@ export function register(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(selectBetweenId, selectBetween),
         vscode.commands.registerCommand(repeatLastChangeId, repeatLastChange),
         vscode.commands.registerCommand(repeatLastSelectionId, repeatLastSelection),
-        vscode.commands.registerCommand(touchTextId, touchText)
+        vscode.commands.registerCommand(touchTextId, touchText),
+        vscode.commands.registerCommand(untouchTextId, untouchText)
     )
     statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Left);
@@ -286,6 +288,15 @@ export function onTextChanged() {
  */
 export function touchText(){
     textChanged = true;
+}
+
+/**
+ * Commands can mark themselves as creating no change even if
+ * the file contents are altered. This is useful for complex commands
+ * that require additional input which you don't want to repeat.
+ */
+ export function untouchText(){
+    textChanged = false;
 }
 
 /**
