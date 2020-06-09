@@ -161,14 +161,17 @@ let lastChange: string[] = []
  * "Repeat last selection" command needs to know when a new selection has
  * been created or an old one modified, and it needs to store
  * the seqeunce of commands leading to those modifications.
- * We also keep track of whether the selection was just repeated
- * (to avoid infinite calls to the repeat seletion command).
  */
 let selectionChanged = false;
-let repeatedSelection = false;
 let lastSelectionSequence: string[] = [];
 let currentSelectionSequence: string[] = [];
 let lastSelectionCommand: string[] = [];
+
+/**
+ * We track whether the last command was a repeat command, to avoid
+ * recursive recording
+ */
+let repeatedSequence = false;
 
 /**
  * ## Command Names
@@ -241,15 +244,22 @@ export function register(context: vscode.ExtensionContext) {
  * variables needed by the `repeatLastChange` command and the status bar.
  */
 async function onType(event: { text: string }) {
-    // if(textChanged){
-    //     lastSelectionCommand = lastSelectionSequence;
-    //     lastChange = lastKeySequence;
-    //     textChanged = false;
-    // }
-    // if(selectionChanged){
-    //     lastSelectionSequence = lastKeySequence;
-    //     selectionChanged = false;
-    // }
+    if(textChanged){
+        if(!repeatedSequence){
+            lastSelectionCommand = lastSelectionSequence;
+            lastChange = lastKeySequence;
+        }
+        repeatedSequence = false;
+        textChanged = false;
+    }
+    if(selectionChanged){
+        if(!repeatedSequence){
+            lastSelectionSequence = lastKeySequence;
+        }
+        repeatedSequence = false;
+        selectionChanged = false;
+    }
+
     currentKeySequence.push(event.text)
     if (await runActionForKey(event.text, true)) {
         lastKeySequence = currentKeySequence;
@@ -263,8 +273,7 @@ async function onType(event: { text: string }) {
  * to indicate that the last command that changed editor text.
  */
 export function onTextChanged() {
-    lastChange = lastKeySequence;
-    lastSelectionCommand = lastSelectionSequence;
+    textChanged = true;
 }
 
 /**
@@ -274,9 +283,7 @@ export function onTextChanged() {
  * other selection is 'new'.
  */
 export function onSelectionChanged(){
-    if(lastChange !== lastKeySequence){
-        lastSelectionSequence = lastKeySequence;
-    }
+    if(!textChanged) selectionChanged = true;
 }
 
 /**
@@ -914,7 +921,7 @@ function selectBetween(args: SelectBetweenArgs) {
 async function repeatLastChange(): Promise<void> {
     for (let i = 0; i < lastChange.length; i++)
         await runActionForKey(lastChange[i], false)
-    currentKeySequence = lastChange
+    repeatedSequence = true;
 }
 
 /**
@@ -928,6 +935,5 @@ async function repeatLastSelection(): Promise<void> {
     for (let i = 0; i < lastSelectionCommand.length; i++){
         await runActionForKey(lastSelectionCommand[i], false);
     }
-    repeatedSelection = true;
-    lastKeySequence = lastSelectionCommand;
+    repeatedSequence = true;
 }
