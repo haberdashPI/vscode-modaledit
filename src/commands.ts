@@ -216,6 +216,8 @@ const selectBetweenId = "modaledit.selectBetween"
 const repeatLastChangeId = "modaledit.repeatLastChange"
 const importPresetsId = "modaledit.importPresets"
 const repeatLastSelectionId = "modaledit.repeatLastSelection"
+const touchTextId = "modaledit.touchText"
+const untouchTextId = "modaledit.untouchText"
 
 /**
  * ## Registering Commands
@@ -248,7 +250,9 @@ export function register(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(selectBetweenId, selectBetween),
         vscode.commands.registerCommand(repeatLastChangeId, repeatLastChange),
         vscode.commands.registerCommand(importPresetsId, importPresets),
-        vscode.commands.registerCommand(repeatLastSelectionId, repeatLastSelection)
+        vscode.commands.registerCommand(repeatLastSelectionId, repeatLastSelection),
+        vscode.commands.registerCommand(touchTextId, touchText),
+        vscode.commands.registerCommand(untouchTextId, untouchText)
     )
     mainStatusBar = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Left)
@@ -298,10 +302,27 @@ export function onTextChanged() {
 }
 
 /**
- * Whenver a selection changes we check we flag it as a modification or
- * creation. A modified selection is one that is a non-empty subset of the old
- * selection or a superset of a non-empty previous selection. Any
- * other selection is 'new'.
+ * Commands can also mark themselves as creating a change even if
+ * the file contents isn't altered. This is useful for action-like commands
+ * you want to repeat that don't actualy modify the text (e.g.
+ * send code to a REPL)
+ */
+export function touchText(){
+    textChanged = true;
+}
+
+/**
+ * Commands can mark themselves as creating no change even if
+ * the file contents are altered. This is useful for complex commands
+ * that require additional input which you don't want to repeat.
+ */
+ export function untouchText(){
+    textChanged = false;
+}
+
+/**
+ * Whenver a selection changes we check we flag it with `selectionChanged`. This
+ * is examined in `onType` above, as with `textChanged`.
  */
 export function onSelectionChanged(){
     if(!textChanged) selectionChanged = true;
