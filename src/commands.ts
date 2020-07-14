@@ -496,7 +496,7 @@ function resetSelection() {
         })
     }
     selecting = false
-    updateStatusBar(vscode.window.activeTextEditor)
+    updateCursorAndStatusBar(vscode.window.activeTextEditor)
 }
 
 /**
@@ -517,7 +517,7 @@ async function toggleSelection(): Promise<void> {
  */
 function enableSelection() {
     selecting = true;
-    updateStatusBar(vscode.window.activeTextEditor)
+    updateCursorAndStatusBar(vscode.window.activeTextEditor)
 }
 
 /**
@@ -1135,7 +1135,7 @@ async function importPresets() {
  */
 async function repeatLastSelection(): Promise<void> {
     for (let i = 0; i < lastSelectionCommand.length; i++){
-        await runActionForKey(lastSelectionCommand[i], false);
+        await runActionForKey(lastSelectionCommand[i]);
     }
     repeatedSequence = true;
 }
