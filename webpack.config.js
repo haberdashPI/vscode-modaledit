@@ -16,7 +16,7 @@ const config = {
     },
     devtool: 'source-map',
     externals: {
-        vscode: "commonjs vscode"
+        vscode: "commonjs vscode",
     },
     resolve: {
         extensions: ['.ts', '.js']
@@ -27,11 +27,6 @@ const config = {
             exclude: /node_modules/,
             use: [{
                 loader: 'ts-loader',
-                options: {
-                    compilerOptions: {
-                        "module": "es6"
-                    }
-                }
             }]
         }]
     },
