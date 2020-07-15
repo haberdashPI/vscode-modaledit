@@ -1,6 +1,9 @@
- + Rebase to get new 2.0 features
-    - test it
  - add option to store settings in a separate file
+   - or do we just use the preset feature???
+   - gracefully handle parser errors
+   - watch the file and update settings appropriately
+   - use a seperate setting, and allow it to be machine overrideable
+   - allow the file to be a remote resource (e.g. a github repository)?
  - define as a new extension
  - default to theme consistent decorators for searched elements
  - Allow keybindings to be specified as multi-string values
